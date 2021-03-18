@@ -1,4 +1,9 @@
 from django.shortcuts import render
+import matplotlib.pyplot as plt
+import pandas as pd
+from pandas import DataFrame
+import numpy as np
+import base64
 
 # Create your views here.
 from rest_framework import viewsets
@@ -107,8 +112,17 @@ class MyTopicUsersViewSet(viewsets.ModelViewSet):
         chk = 0
         res = []
         for data in serializer.data[-7:]:
-            thi = (1.8 * data['temp']) - (0.55 * (1 - (data['humidity'] / 100)) * (1.8 * data['temp'] - 26)) + 32
-            if thi > chk:
-                chk = thi
+            if data['humidity'] > chk:
+                chk = data['humidity']
+                thi = (1.8 * data['temp']) - (0.55 * (1 - (data['humidity'] / 100)) * (1.8 * data['temp'] - 26)) + 32
                 res.append({'지역': data['city'], '기온': data['temp'], '습도': data['humidity'], '불쾌지수': round(thi, 2), '날짜': data['created_at']})
         return Response({'불쾌지수 가장 높은 지역 정보' : res[-1]})
+
+    @action(detail=False, methods=['GET'])
+    def chart(self, request):
+        qs = self.get_queryset()
+        serializer = self.get_serializer(qs, many=True)
+        post_df = pd.DataFrame(list(serializer.data[-7:]))
+        plt.bar(post_df['city'], post_df['temp_max'])
+        plt.savefig('temp_max.png')
+        return Response({'temp_max':'성공'})
